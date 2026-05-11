@@ -59,6 +59,15 @@ Use Task Scheduler to run the script at every login:
 
 To test before rebooting: right-click the task → **Run**. Remove `-WindowStyle Hidden` temporarily to see the output window.
 
+## Task Scheduler Export
+
+A pre-configured `wifi_reconnect_task.xml` is included for convenience.
+
+> ⚠️ **Before importing:** This file contains a hardcoded path specific to the original machine.
+> `C:\Users\Nuka1one\standaloneexc\` to match your own system.
+> Then import via Task Scheduler → **Action** → **Import Task**.
+
+
 ## How It Works
 
 1. Reads all radio status lines and checks for `Software Off` — if the WiFi taskbar toggle is off, exits with a clear message instead of running anyway
