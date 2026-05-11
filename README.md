@@ -34,12 +34,12 @@ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ### 2. Run manually
 
-Right-click `wifi_reconnect.ps1` → "Run with PowerShell"
+Right-click `noadmin_wifi_reload1.ps1` → "Run with PowerShell"
 
 Or in PowerShell:
 
 ```powershell
-.\wifi_reconnect.ps1
+.\noadmin_wifi_reload1.ps1
 ```
 
 ### 3. Run automatically on startup (recommended)
@@ -52,7 +52,7 @@ Use Task Scheduler to run the script at every login:
 4. **Triggers tab**: New → Begin the task: **At log on** → OK
 5. **Actions tab**: New → Program: `powershell.exe` → Arguments:
    ```
-   -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\Path\To\wifi_reconnect.ps1"
+   -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\Path\To\noadmin_wifi_reload1.ps1"
    ```
 6. **Conditions tab**: Uncheck "Start only if on AC power"
 7. Click OK
@@ -74,6 +74,7 @@ Use Task Scheduler to run the script at every login:
 - The script uses only `netsh wlan` commands — no third-party tools, no registry edits
 - Toggling the adapter on/off (full disable/enable) requires admin rights on Windows, so this script uses disconnect + reconnect instead
 - If the script still fails after 4 attempts, try running Task Scheduler with "Run with highest privileges" and your Windows password
+- **The present project was developed in collaboration with Claude Sonnet 4.6**
 
 ## License
 
