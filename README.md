@@ -8,12 +8,12 @@ Windows 10 sometimes fails to connect to WiFi after booting or waking from sleep
 
 ## Features
 
-- Auto-detects your WiFi adapter and SSID — no manual config needed
+- Auto-detects your WiFi adapter & SSID (No manual config needed)
+- Detects WiFi turned off via taskbar toggle (`Software Off`) and exits cleanly with a message
 - Disconnects, waits for the adapter to be ready, then reconnects
 - Retries up to 4 times before giving up
 - Checks internet connectivity after reconnect
-- Detects if WiFi is turned off (via taskbar toggle) and exits cleanly
-- Works on English and German Windows 10
+- Works on English & German Windows 10
 - No admin rights required
 
 ## Requirements
@@ -61,7 +61,7 @@ Use Task Scheduler to run the script at every login:
 
 ## How It Works
 
-1. Checks if the WiFi radio is on (`Software Off` = WiFi kachel was pressed → exits with message)
+1. Reads all radio status lines and checks for `Software Off` — if the WiFi taskbar toggle is off, exits with a clear message instead of running anyway
 2. Reads the current or last known SSID from `netsh wlan show interfaces`
 3. Disconnects from the network
 4. Waits until the adapter is ready again (up to 15 seconds)
@@ -74,7 +74,6 @@ Use Task Scheduler to run the script at every login:
 - The script uses only `netsh wlan` commands — no third-party tools, no registry edits
 - Toggling the adapter on/off (full disable/enable) requires admin rights on Windows, so this script uses disconnect + reconnect instead
 - If the script still fails after 4 attempts, try running Task Scheduler with "Run with highest privileges" and your Windows password
-- **The present project was developed in collaboration with Claude Sonnet 4.6**
 
 ## License
 
