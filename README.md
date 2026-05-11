@@ -4,7 +4,7 @@ A lightweight PowerShell script that automatically reconnects your WiFi on start
 
 ## The Problem
 
-Windows 10 sometimes fails to connect to WiFi after booting or waking from sleep. The usual workaround is manually toggling WiFi off and on, or clicking "Show all networks" to force a refresh. This script automates that exact process.
+~(My??)~ Windows 10 sometimes fails to connect to Wi-Fi after booting or waking from sleep. The usual workaround is to manually toggle Wi-Fi off and on, or click "Show all networks" to force a refresh. This script automates that process.
 
 ## Features
 
@@ -48,7 +48,7 @@ Use Task Scheduler to run the script at every login:
 
 1. Press `Win + R`, type `taskschd.msc`, hit Enter
 2. Click **Create Task** (right panel, not "Create Basic Task"!!!)
-3. **General tab**: Name it `WiFi Reload1` — make sure your own user account is selected, not SYSTEM
+3. **General tab**: Name it `WiFi Reload1 script` — make sure your own user account is selected, not SYSTEM
 4. **Triggers tab**: New → Begin the task: **At log on** → enable **Delay task for: 30 seconds** → OK
 5. **Actions tab**: New →
    - Program/script: `powershell.exe`
@@ -74,6 +74,7 @@ To test before rebooting: right-click the task → **Run**. Remove `-WindowStyle
 - The script uses only `netsh wlan` commands — no third-party tools, no registry edits
 - Toggling the adapter on/off (full disable/enable) requires admin rights on Windows, so this script uses disconnect + reconnect instead
 - If the script still fails after 4 attempts, try running Task Scheduler with "Run with highest privileges" and your Windows password
+- - **The present project was developed in collaboration with Claude Sonnet 4.6**
 
 ## License
 
