@@ -47,17 +47,17 @@ Or in PowerShell:
 Use Task Scheduler to run the script at every login:
 
 1. Press `Win + R`, type `taskschd.msc`, hit Enter
-2. Click **Create Task** (right panel)
-3. **General tab**: Name it `WiFi Reconnect`, leave user account as-is
-4. **Triggers tab**: New → Begin the task: **At log on** → OK
-5. **Actions tab**: New → Program: `powershell.exe` → Arguments:
-   ```
-   -ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\Path\To\noadmin_wifi_reload1.ps1"
-   ```
+2. Click **Create Task** (right panel, not "Create Basic Task"!!!)
+3. **General tab**: Name it `WiFi Reload1` — make sure your own user account is selected, not SYSTEM
+4. **Triggers tab**: New → Begin the task: **At log on** → enable **Delay task for: 30 seconds** → OK
+5. **Actions tab**: New →
+   - Program/script: `powershell.exe`
+   - Add arguments: `-ExecutionPolicy Bypass -WindowStyle Hidden -File "C:\Users\YourName\path\to\noadmin_wifi_reload1.ps1"`
 6. **Conditions tab**: Uncheck "Start only if on AC power"
-7. Click OK
+7. **Settings tab**: Enable "If the task fails, restart every: 1 minute" up to 3 times
+8. OK → done
 
-> Remove `-WindowStyle Hidden` if you want to see the output window on startup.
+To test before rebooting: right-click the task → **Run**. Remove `-WindowStyle Hidden` temporarily to see the output window.
 
 ## How It Works
 
