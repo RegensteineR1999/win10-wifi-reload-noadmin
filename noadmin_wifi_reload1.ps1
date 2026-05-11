@@ -1,18 +1,18 @@
 # WiFi Reconnect Fixer - No Admin needed
 # Automatically reconnects to WiFi on startup or after connection loss
 
-# Check if WiFi radio is on
+# Check if WiFi radio is on - check ALL radio status lines
 $ifaceOutput = netsh wlan show interfaces 2>&1
-$radioState = ($ifaceOutput | Select-String "Radio status\s*[:\s]+(.+)" | Select-Object -First 1)
-if ($radioState) {
-    $radioValue = ($radioState.Matches.Groups[1].Value).Trim()
-    Write-Host "Radio: $radioValue"
-    if ($radioValue -match "Software Off|off|aus|disabled") {
-        Write-Host "WiFi is turned off. Please enable WiFi first."
-        Read-Host "Press Enter to exit"
-        exit
-    }
+$radioLines = $ifaceOutput | Select-String "Radio status|Hardware|Software"
+$radioText = ($radioLines | ForEach-Object { $_.Line }) -join " "
+Write-Host "Radio check: $radioText"
+
+if ($radioText -match "(?i)Software\s*Off") {
+    Write-Host "WiFi is turned off (Software). Please enable WiFi first."
+    Read-Host "Press Enter to exit"
+    exit
 }
+
 
 # Get SSID
 $ssidLine = $ifaceOutput | Select-String "^\s+SSID\s+:\s(.+)$" | Select-Object -First 1
