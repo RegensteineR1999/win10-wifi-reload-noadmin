@@ -1,26 +1,21 @@
 # WiFi Reconnect Fixer - No Admin needed
+# Automatically reconnects to WiFi on startup or after connection loss
 
-# Check if WiFi radio is on at all
-$radioState = (netsh wlan show interfaces | Select-String "Radio status\s*:\s*(.+)" | Select-Object -First 1)
+# Check if WiFi radio is on
+$ifaceOutput = netsh wlan show interfaces 2>&1
+$radioState = ($ifaceOutput | Select-String "Radio status\s*[:\s]+(.+)" | Select-Object -First 1)
 if ($radioState) {
     $radioValue = ($radioState.Matches.Groups[1].Value).Trim()
-    if ($radioValue -notmatch "Hardware On|Software On|on") {
-        Write-Host "WiFi radio is OFF. Please turn WiFi on first (use the taskbar toggle)."
+    Write-Host "Radio: $radioValue"
+    if ($radioValue -match "Software Off|off|aus|disabled") {
+        Write-Host "WiFi is turned off. Please enable WiFi first."
         Read-Host "Press Enter to exit"
         exit
     }
 }
 
-# Check adapter is not powered down
-$ifaceCheck = netsh wlan show interfaces 2>&1
-if ($ifaceCheck -match "powered down" -or $ifaceCheck -notmatch "State") {
-    Write-Host "WiFi adapter is powered down or unavailable."
-    Read-Host "Press Enter to exit"
-    exit
-}
-
 # Get SSID
-$ssidLine = netsh wlan show interfaces | Select-String "^\s+SSID\s+:\s(.+)$" | Select-Object -First 1
+$ssidLine = $ifaceOutput | Select-String "^\s+SSID\s+:\s(.+)$" | Select-Object -First 1
 if (-not $ssidLine) {
     $profiles = netsh wlan show profiles | Select-String "All User Profile\s*:\s*(.*)"
     if ($profiles) { $currentSSID = ($profiles[0].Matches.Groups[1].Value).Trim() }
@@ -45,7 +40,7 @@ Write-Host "Waiting for adapter..."
 $ready = $false
 for ($w = 1; $w -le 5; $w++) {
     $check = netsh wlan show interfaces 2>&1
-    if ($check -notmatch "powered down" -and $check -match "State") {
+    if ($check -match "State|Zustand|Status") {
         $ready = $true; break
     }
     Write-Host "Not ready yet ($w/5)..."
