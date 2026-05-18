@@ -1,4 +1,4 @@
-# windows-wifi-reconnect
+# windows10-wifi-reconnect
 
 A lightweight PowerShell script that automatically reconnects your WiFi on startup — no admin rights required.
 
@@ -83,7 +83,7 @@ A pre-configured `wifi_reconnect_task.xml` is included for convenience.
 - The script uses only `netsh wlan` commands — no third-party tools, no registry edits
 - Toggling the adapter on/off (full disable/enable) requires admin rights on Windows, so this script uses disconnect + reconnect instead
 - If the script still fails after 4 attempts, try running Task Scheduler with "Run with highest privileges" and your Windows password
-- - **The present project was developed in collaboration with Claude Sonnet 4.6**
+-  **The present project was developed in collaboration with Claude Sonnet 4.6**
 
 ## License
 
