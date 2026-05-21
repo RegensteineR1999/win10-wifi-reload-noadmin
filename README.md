@@ -6,7 +6,14 @@ A lightweight PowerShell script that automatically reconnects your WiFi on start
 
 ## The Problem
 
-Windows 10 sometimes fails to connect to WiFi after booting or waking from sleep. The usual workaround is manually toggling WiFi off and on, or clicking "Show all networks" to force a refresh. This script automates that exact process.
+~~My???~~ Windows 10 sometimes fails to connect to WiFi after booting or waking 
+from sleep. The usual workaround is manually toggling WiFi off and on, or 
+clicking "Show all networks" to force a refresh.
+
+This happens because Windows sometimes just sits there after boot — 
+the adapter shows as connected, but no actual network traffic flows 
+until you manually poke the UI. This script does that poking for you, 
+automatically.
 
 ## Features
 
