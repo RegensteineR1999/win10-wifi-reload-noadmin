@@ -1,86 +1,93 @@
 # WiFi Reconnect Fixer - No Admin needed
-# Automatically reconnects to WiFi on startup or after connection loss
+# Runs silently at startup/user login via Task Scheduler
+# Shows popup + opens Network Settings on failure or if WiFi is off
 
-# Check if WiFi radio is on
-$ifaceOutput = netsh wlan show interfaces 2>&1
-$radioLines = $ifaceOutput | Select-String "Radio status|Hardware|Software"
-$radioText = ($radioLines | ForEach-Object { $_.Line }) -join " "
-
-if ($radioText -match "(?i)Software\s*Off") {
-    Write-Host "WiFi is turned off. Please enable WiFi first."
-    exit
+function Get-WlanOutput {
+    return netsh wlan show interfaces 2>&1
 }
 
-# Check if already connected and internet works - if so, nothing to do
-$stateNow = ($ifaceOutput | Select-String "^\s+State\s*:\s(.+)$" | Select-Object -First 1)
-$stateNowValue = ($stateNow.Matches.Groups[1].Value).Trim()
-
-if ($stateNowValue -eq "connected") {
-    $tcp = New-Object System.Net.Sockets.TcpClient
-    try {
-        $tcp.ConnectAsync("8.8.8.8", 53).Wait(3000)
-        if ($tcp.Connected) {
-            Write-Host "Already connected and online. Nothing to do."
-            exit
-        }
-    } catch {} finally { $tcp.Close() }
+function Show-Notice($title, $message) {
+    Add-Type -AssemblyName System.Windows.Forms | Out-Null
+    [System.Windows.Forms.MessageBox]::Show(
+        $message,
+        $title,
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    ) | Out-Null
 }
 
-# Get SSID
-$ssidLine = $ifaceOutput | Select-String "^\s+SSID\s+:\s(.+)$" | Select-Object -First 1
-if (-not $ssidLine) {
+function Is-SoftwareOff($output) {
+    $radioLines = $output | Select-String "Radio status|Hardware|Software"
+    $radioText = ($radioLines | ForEach-Object { $_.Line }) -join " "
+    return $radioText -match "(?i)Software\s*Off"
+}
+
+function Get-State($output) {
+    $line = $output | Select-String "^\s+State\s*:\s(.+)$" | Select-Object -First 1
+    if ($line) { return ($line.Matches.Groups[1].Value).Trim() }
+    return ""
+}
+
+function Get-SSID($output) {
+    $line = $output | Select-String "^\s+SSID\s+:\s(.+)$" | Select-Object -First 1
+    if ($line) { return ($line.Matches.Groups[1].Value).Trim() }
     $profiles = netsh wlan show profiles | Select-String "All User Profile\s*:\s*(.*)"
-    if ($profiles) { $currentSSID = ($profiles[0].Matches.Groups[1].Value).Trim() }
-} else {
-    $currentSSID = ($ssidLine.Matches.Groups[1].Value).Trim()
+    if ($profiles) { return ($profiles[0].Matches.Groups[1].Value).Trim() }
+    return ""
 }
 
-if ([string]::IsNullOrEmpty($currentSSID)) {
-    Write-Host "No SSID found!"
+# --- Initial checks ---
+$output = Get-WlanOutput
+
+if (Is-SoftwareOff $output) {
+    Write-Host "WiFi is turned off (Software Off). Opening Network settings..."
+    Show-Notice "WiFi Reconnect" "WiFi is turned off via the taskbar toggle.`nNetwork settings will open so you can turn it back on."
+    Start-Process ms-settings:network
     exit
 }
-Write-Host "Target SSID: $currentSSID"
 
-# Disconnect
+$state = Get-State $output
+if ($state -eq "connected") {
+    Write-Host "Already connected. Nothing to do."
+    exit
+}
+
+$ssid = Get-SSID $output
+if ([string]::IsNullOrEmpty($ssid)) {
+    Write-Host "No SSID found. Exiting."
+    Show-Notice "WiFi Reconnect" "No known WiFi network found.`nPlease connect manually."
+    Start-Process ms-settings:network
+    exit
+}
+
+Write-Host "Target SSID: $ssid"
+
+# --- One disconnect to reset state ---
 Write-Host "Disconnecting..."
-netsh wlan disconnect
-Start-Sleep -Seconds 5
+netsh wlan disconnect 2>&1 | Out-Null
+Start-Sleep -Seconds 10
 
-# Wait until adapter ready (max 15s)
-Write-Host "Waiting for adapter..."
-$ready = $false
-for ($w = 1; $w -le 5; $w++) {
-    $check = netsh wlan show interfaces 2>&1
-    if ($check -match "State|Zustand|Status") {
-        $ready = $true; break
-    }
-    Write-Host "Not ready yet ($w/5)..."
-    Start-Sleep -Seconds 3
-}
+# --- Scan + connect loop (no repeated disconnects) ---
+for ($i = 1; $i -le 5; $i++) {
+    Write-Host "Attempt $i of 5 - scanning..."
+    netsh wlan show networks mode=bssid 2>&1 | Out-Null
+    Start-Sleep -Seconds 5
 
-if (-not $ready) {
-    Write-Host "Adapter stuck. Try toggling WiFi manually once."
-    exit
-}
+    Write-Host "Attempt $i of 5 - connecting..."
+    netsh wlan connect name="$ssid" 2>&1 | Out-Null
+    Start-Sleep -Seconds 10
 
-# Scan
-netsh wlan show networks 2>&1 | Out-Null
-Start-Sleep -Seconds 3
+    $check = Get-WlanOutput
+    $newState = Get-State $check
+    Write-Host "State: $newState"
 
-# Reconnect loop
-for ($i = 1; $i -le 4; $i++) {
-    Write-Host "Attempt $i..."
-    netsh wlan connect name="$currentSSID" 2>&1 | Out-Null
-    Start-Sleep -Seconds 8
-
-    $state = (netsh wlan show interfaces | Select-String "^\s+State\s*:\s(.+)$" | Select-Object -First 1)
-    $stateValue = ($state.Matches.Groups[1].Value).Trim()
-    Write-Host "State: $stateValue"
-
-    if ($stateValue -eq "connected") {
+    if ($newState -eq "connected") {
         Write-Host "Connected on attempt $i!"
         exit
     }
 }
 
-Write-Host "Failed to reconnect after 4 attempts."
+# --- All attempts failed ---
+Write-Host "Failed to connect after 5 attempts."
+Show-Notice "WiFi Reconnect" "Could not reconnect to '$ssid' after 5 attempts.`nNetwork settings will open now."
+Start-Process ms-settings:network
