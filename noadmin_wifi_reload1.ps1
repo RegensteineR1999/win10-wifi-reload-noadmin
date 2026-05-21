@@ -1,18 +1,30 @@
 # WiFi Reconnect Fixer - No Admin needed
 # Automatically reconnects to WiFi on startup or after connection loss
 
-# Check if WiFi radio is on - check ALL radio status lines
+# Check if WiFi radio is on
 $ifaceOutput = netsh wlan show interfaces 2>&1
 $radioLines = $ifaceOutput | Select-String "Radio status|Hardware|Software"
 $radioText = ($radioLines | ForEach-Object { $_.Line }) -join " "
-Write-Host "Radio check: $radioText"
 
 if ($radioText -match "(?i)Software\s*Off") {
-    Write-Host "WiFi is turned off (Software). Please enable WiFi first."
-    Read-Host "Press Enter to exit"
+    Write-Host "WiFi is turned off. Please enable WiFi first."
     exit
 }
 
+# Check if already connected and internet works - if so, nothing to do
+$stateNow = ($ifaceOutput | Select-String "^\s+State\s*:\s(.+)$" | Select-Object -First 1)
+$stateNowValue = ($stateNow.Matches.Groups[1].Value).Trim()
+
+if ($stateNowValue -eq "connected") {
+    $tcp = New-Object System.Net.Sockets.TcpClient
+    try {
+        $tcp.ConnectAsync("8.8.8.8", 53).Wait(3000)
+        if ($tcp.Connected) {
+            Write-Host "Already connected and online. Nothing to do."
+            exit
+        }
+    } catch {} finally { $tcp.Close() }
+}
 
 # Get SSID
 $ssidLine = $ifaceOutput | Select-String "^\s+SSID\s+:\s(.+)$" | Select-Object -First 1
@@ -25,7 +37,6 @@ if (-not $ssidLine) {
 
 if ([string]::IsNullOrEmpty($currentSSID)) {
     Write-Host "No SSID found!"
-    Read-Host "Press Enter to exit"
     exit
 }
 Write-Host "Target SSID: $currentSSID"
@@ -49,7 +60,6 @@ for ($w = 1; $w -le 5; $w++) {
 
 if (-not $ready) {
     Write-Host "Adapter stuck. Try toggling WiFi manually once."
-    Read-Host "Press Enter to exit"
     exit
 }
 
@@ -69,15 +79,8 @@ for ($i = 1; $i -le 4; $i++) {
 
     if ($stateValue -eq "connected") {
         Write-Host "Connected on attempt $i!"
-        break
+        exit
     }
 }
 
-# Internet check
-$tcp = New-Object System.Net.Sockets.TcpClient
-try {
-    $tcp.ConnectAsync("8.8.8.8", 53).Wait(3000)
-    if ($tcp.Connected) { Write-Host "Internet OK!" } else { Write-Host "Still no internet." }
-} catch { Write-Host "Check failed." } finally { $tcp.Close() }
-
-Read-Host "Press Enter to exit"
+Write-Host "Failed to reconnect after 4 attempts."
